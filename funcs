@@ -1,3 +1,4 @@
+-- WebSocket implementation
 WebSocket = WebSocket or {}
 
 function WebSocket.connect(url)
@@ -7,45 +8,55 @@ function WebSocket.connect(url)
     if not (url:match("^ws://") or url:match("^wss://")) then
         return nil, "Invalid WebSocket URL. Must start with 'ws://' or 'wss://'."
     end
+
     local after_protocol = url:gsub("^ws://", ""):gsub("^wss://", "")
-    if after_protocol == "" or after_protocol:match("^%s*$") then
+    if after_protocol:match("^%s*$") then
         return nil, "Invalid WebSocket URL. No host specified."
     end
+
+    -- WebSocket object
     return {
         Send = function(message)
+            -- Implement Send functionality
         end,
         Close = function()
+            -- Implement Close functionality
         end,
-        OnMessage = {},
-        OnClose = {},
+        OnMessage = {}, -- Callback for receiving messages
+        OnClose = {},   -- Callback for when the WebSocket is closed
     }
 end
+
+-- Metatable-related utilities
 local metatables = {}
+local originalSetMetatable = setmetatable
 
-local rsetmetatable = setmetatable
-
-setmetatable = function(tabl, meta)
-    local object = rsetmetatable(tabl, meta)
+setmetatable = function(table, meta)
+    local object = originalSetMetatable(table, meta)
     metatables[object] = meta
     return object
 end
-getrawmetatable = function(object)
+
+function getrawmetatable(object)
     return metatables[object]
 end
-setrawmetatable = function(taaable, newmt)
-    local currentmt = getrawmetatable(taaable)
-    table.foreach(newmt, function(key, value)
-        currentmt[key] = value
-    end)
-    return taaable
+
+function setrawmetatable(object, newMeta)
+    local currentMeta = getrawmetatable(object)
+    for key, value in pairs(newMeta) do
+        currentMeta[key] = value
+    end
+    return object
 end
 
-
+-- Hidden property utilities
 local hiddenProperties = {}
+
 function sethiddenproperty(obj, property, value)
     if not obj or type(property) ~= "string" then
         error("Failed to set hidden property '" .. tostring(property) .. "' on the object: " .. tostring(obj))
     end
+
     hiddenProperties[obj] = hiddenProperties[obj] or {}
     hiddenProperties[obj][property] = value
     return true
@@ -55,54 +66,51 @@ function gethiddenproperty(obj, property)
     if not obj or type(property) ~= "string" then
         error("Failed to get hidden property '" .. tostring(property) .. "' from the object: " .. tostring(obj))
     end
+
     local value = hiddenProperties[obj] and hiddenProperties[obj][property] or nil
     local isHidden = true
     return value or (property == "size_xml" and 5), isHidden
 end
-function hookmetamethod(t, index, func)
-	assert(type(t) == "table" or type(t) == "userdata", "invalid argument #1 to 'hookmetamethod' (table or userdata expected, got " .. type(t) .. ")", 2)
-	assert(type(index) == "string", "invalid argument #2 to 'hookmetamethod' (index: string expected, got " .. type(t) .. ")", 2)
-	assert(type(func) == "function", "invalid argument #3 to 'hookmetamethod' (function expected, got " .. type(t) .. ")", 2)
-	local o = t
-	local mt = Xeno.debug.getmetatable(t)
-	mt[index] = func
-	t = mt
-	return o
+
+-- Hooking metamethods
+function hookmetamethod(obj, method, replacement)
+    assert(type(obj) == "table" or type(obj) == "userdata", "First argument must be a table or userdata.")
+    assert(type(method) == "string", "Second argument must be a string.")
+    assert(type(replacement) == "function", "Third argument must be a function.")
+
+    local meta = getrawmetatable(obj)
+    local original = meta[method]
+    meta[method] = replacement
+    return original
 end
 
-hookmetamethod = function(obj, tar, rep)
-    local meta = getgenv().getrawmetatable(obj)
-    local save = meta[tar]
-    meta[tar] = rep
-    return save
-end
-function debug.getproto(f, index, mock)
-    local proto_func = function() return true end  
+-- Debugging utilities
+function debug.getproto(func, index, mock)
     if mock then
-        return { proto_func }
-    else
-        return proto_func
+        return { function() return true end } -- Mock function
     end
+    return function() return true end
 end
 
 function debug.getconstant(func, index)
     local constants = {
-        [1] = "print", 
-        [2] = nil,     
-        [3] = "Hello, world!", 
+        [1] = "print",         -- Example constant
+        [2] = nil,             -- Example nil constant
+        [3] = "Hello, world!"  -- Example string constant
     }
     return constants[index]
 end
+
 function debug.getupvalues(func)
-    local founded
-    setfenv(func, {print = function(funcc) founded = funcc end})
+    local found
+    setfenv(func, { print = function(val) found = val end })
     func()
-    return {founded}
+    return { found }
 end
 
-function debug.getupvalue(func, num)
-    local founded
-    setfenv(func, {print = function(funcc) founded = funcc end})
+function debug.getupvalue(func, index)
+    local found
+    setfenv(func, { print = function(val) found = val end })
     func()
-    return founded
+    return found
 end
