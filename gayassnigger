@@ -1,6 +1,6 @@
 game:GetService("StarterGui"):SetCore("SendNotification",{
 Title = "Zenus",
-Text = "Script Executed! Powered by Zenus", 
+Text = "Script Executed! Powered by Xeno.", 
 
 Button1 = "ignore",
 Duration = 30 
